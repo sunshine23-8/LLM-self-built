@@ -47,8 +47,8 @@ flowchart TD
 ### 🔹 Bước 2: Tự Xây Dựng Tokenizer (Byte-Level BPE from Scratch)
 * **Mục tiêu**: Tự xây dựng bộ mã hóa ký tự Byte-Level BPE tối ưu cho toán học, không dùng thư viện đóng gói sẵn (`tiktoken`, `tokenizers`).
 * **Các việc cần làm**:
-  - [ ] Viết `src/tokenizer/pretokenizer.py`: Dùng Regex tách riêng từng chữ số đơn lẻ `0–9` (tránh ghép số tùy tiện, ví dụ `1234` luôn thành `['1','2','3','4']`), giữ nguyên khoảng trắng và xuống dòng.
-  - [ ] Viết `src/tokenizer/bpe.py`:
+  - [x] Viết `src/tokenizer/pretokenizer.py`: Dùng Regex tách riêng từng chữ số đơn lẻ `0–9` (tránh ghép số tùy tiện, ví dụ `1234` luôn thành `['1','2','3','4']`), giữ nguyên khoảng trắng và xuống dòng.
+  - [x] Viết `src/tokenizer/bpe.py`:
     - Khởi tạo từ 256 bytes UTF-8 cơ bản.
     - Học bảng ghép nối (merges) qua tần suất xuất hiện trên corpus mẫu.
     - Cố định **7 Special Tokens**:
@@ -61,7 +61,7 @@ flowchart TD
       - `6: </think>`
     - Kích thước từ vựng mục tiêu: `vocab_size = 16,384`.
     - Hỗ trợ lưu và nạp từ `vocab.json` và `merges.txt`.
-  - [ ] Viết test kiểm tra encode/decode lossless (chuỗi nguyên bản sau khi decode phải trùng khớp 100%).
+  - [x] Viết test kiểm tra encode/decode lossless (chuỗi nguyên bản sau khi decode phải trùng khớp 100%). (✅ Đã pass 2/2 tests)
 
 ---
 
