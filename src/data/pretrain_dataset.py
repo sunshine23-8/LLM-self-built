@@ -10,27 +10,45 @@ from src.model.transformer import DecoderOnlyLM
 from src.tokenizer.bpe import ByteLevelBPETokenizer
 
 
-def pack_texts_to_bin(texts: Iterable[str], tokenizer: ByteLevelBPETokenizer, out_path: str | Path) -> int:
-    """Encode texts stream into a packed flat uint16 binary file."""
+def pack_texts_to_bin(
+    texts: Iterable[str],
+    tokenizer: ByteLevelBPETokenizer,
+    out_path: str | Path,
+    log_interval: int = 5000,
+) -> int:
+    """Encode texts stream into a packed flat uint16 binary file with progress logging."""
     if tokenizer.vocab_size > 65535:
         raise ValueError("uint16 packing requires vocab_size <= 65535")
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
     buf: list[int] = []
     total = 0
+    sample_count = 0
+    t0 = time.perf_counter()
+
     with out.open("wb") as f:
         for text in texts:
+            sample_count += 1
             ids = tokenizer.encode(text, add_bos=False, add_eos=True)
             buf.extend(ids)
+
+            if sample_count % log_interval == 0:
+                elapsed = time.perf_counter() - t0
+                speed = sample_count / elapsed if elapsed > 0 else 0.0
+                current_tokens = total + len(buf)
+                print(f"--> Packed {sample_count:,} samples | {current_tokens:,} tokens ({speed:.1f} samples/s)")
+
             if len(buf) >= 1_000_000:
                 arr = np.array(buf, dtype=np.uint16)
                 arr.tofile(f)
                 total += len(arr)
                 buf.clear()
+
         if buf:
             arr = np.array(buf, dtype=np.uint16)
             arr.tofile(f)
             total += len(arr)
+
     return total
 
 
