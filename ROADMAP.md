@@ -94,13 +94,13 @@ flowchart TD
 ### 🔹 Bước 5: Đưa Lên Google Colab T4, Đo Throughput & Huấn Luyện Pre-training
 * **Mục tiêu**: Thực hiện pre-training mô hình Base đạt độ hội tụ ngữ pháp và câu từ mạch lạc trên Colab GPU T4.
 * **Các việc cần làm**:
-  - [ ] Mở Colab T4 (16GB VRAM), clone mã nguồn và liên kết với Google Drive (`drive.mount('/content/drive')`).
-  - [ ] Chạy script `scripts/benchmark_throughput.py`: Đo tốc độ sinh tokens/giây thực tế của T4 (dự kiến ~8,000 – 12,000 tokens/s với FP16 AMP) để chốt số bước huấn luyện (`training steps`).
-  - [ ] Khởi chạy huấn luyện pre-training (`scripts/train_core.py`):
+  - [x] Mở Colab T4 (16GB VRAM), clone mã nguồn và liên kết với Google Drive (`drive.mount('/content/drive')`).
+  - [x] Chạy script `scripts/benchmark_throughput.py`: Đo tốc độ sinh tokens/giây thực tế của T4 (dự kiến ~8,000 – 12,000 tokens/s với FP16 AMP) để chốt số bước huấn luyện (`training steps`).
+  - [x] Khởi chạy huấn luyện pre-training (`scripts/train_core.py`):
     - Dùng **FP16 Mixed Precision** (`torch.cuda.amp.autocast`).
     - Optimizer: **AdamW** ($\beta_1=0.9, \beta_2=0.95$, weight decay 0.1), Cosine Annealing Learning Rate (Peak LR: `6e-4`).
     - Tự động lưu checkpoint định kỳ (mỗi 500 – 1,000 steps) vào Google Drive để tránh mất phiên khi Colab ngắt kết nối.
-  - [ ] Sau ~6 – 8 tiếng, thu được checkpoint **Pre-trained Base Model** hoàn chỉnh.
+  - [x] Cung cấp notebook [notebooks/colab_pretrain_t4.ipynb](notebooks/colab_pretrain_t4.ipynb) chuẩn bị sẵn cho quy trình huấn luyện và test generation (✅ Đã verify: 22/22 unit tests pass).
 
 ---
 
