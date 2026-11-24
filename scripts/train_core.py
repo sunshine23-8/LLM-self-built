@@ -1,5 +1,10 @@
 import argparse
 from pathlib import Path
+import sys
+
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import torch
 from torch.utils.data import DataLoader
 from src.data.pretrain_dataset import PackedTokenDataset

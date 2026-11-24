@@ -1,5 +1,10 @@
 import argparse
 from pathlib import Path
+import sys
+
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from datasets import load_dataset
 from src.tokenizer.bpe import ByteLevelBPETokenizer
 

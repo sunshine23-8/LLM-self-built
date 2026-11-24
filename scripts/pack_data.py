@@ -1,6 +1,11 @@
 import argparse
 import json
 from pathlib import Path
+import sys
+
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from datasets import load_dataset
 from src.data.pretrain_dataset import pack_texts_to_bin
 from src.tokenizer.bpe import ByteLevelBPETokenizer
