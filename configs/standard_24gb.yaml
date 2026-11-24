@@ -1,0 +1,14 @@
+model:
+  vocab_size: 16384
+  block_size: 2048
+  d_model: 1024
+  n_layers: 16
+  n_heads: 16
+  n_kv_heads: 4
+  d_ff: 2816
+  rope_theta: 10000.0
+  norm_eps: 1.0e-6
+  dropout: 0.0
+  tie_word_embeddings: true
+  dtype: bfloat16
+  attn_backend: manual

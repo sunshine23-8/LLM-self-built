@@ -1,0 +1,83 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Pytest / Unit testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# PyTorch Checkpoints & Model Weights
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.ckpt
+checkpoints/
+models/
+weights/
+
+# Datasets & Large Data Files
+data/
+datasets/
+*.jsonl
+*.parquet
+*.arrow
+*.csv.gz
+*.tar.gz
+*.zip
+
+# Training Logs, Profiling & Monitoring
+wandb/
+runs/
+logs/
+*.log
+profile_results/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Operating System files
+.DS_Store
+Thumbs.db
+desktop.ini
