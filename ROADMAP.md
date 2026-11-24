@@ -84,10 +84,10 @@ flowchart TD
 ### 🔹 Bước 4: Đóng Gói Dữ Liệu thành File Nhị Phân (`train.bin`)
 * **Mục tiêu**: Chuyển đổi dữ liệu text thành mảng nhị phân phẳng (`uint16`) để nạp trực tiếp qua `numpy.memmap`, tránh tắc nghẽn I/O trên Google Colab.
 * **Các việc cần làm**:
-  - [ ] Lấy khoảng **250.000 – 300.000 mẫu** (~200M – 300M tokens) từ nguồn chất lượng cao (FineWeb-2 subset tiếng Việt hoặc TinyStories/FineWeb-Edu).
-  - [ ] Dùng bộ Tokenizer đã xây dựng ở Bước 2 để tokenize toàn bộ văn bản.
-  - [ ] Nối chuỗi kèm token `<|bos|>` và `<|eos|>`, ghi trực tiếp vào file nhị phân `train.bin` kiểu dữ liệu `uint16`.
-  - [ ] Dung lượng file nhị phân chỉ khoảng **~400 MB – 600 MB**, nén và tải lên Google Drive nhanh chóng.
+  - [x] Lấy khoảng **250.000 – 300.000 mẫu** (~200M – 300M tokens) từ nguồn chất lượng cao (FineWeb-2 subset tiếng Việt hoặc TinyStories/FineWeb-Edu).
+  - [x] Dùng bộ Tokenizer đã xây dựng ở Bước 2 để tokenize toàn bộ văn bản.
+  - [x] Nối chuỗi kèm token `<|bos|>` và `<|eos|>`, ghi trực tiếp vào file nhị phân `train.bin` kiểu dữ liệu `uint16` (`src/data/pretrain_dataset.py`, `scripts/pack_data.py`).
+  - [x] Dung lượng file nhị phân chỉ khoảng **~400 MB – 600 MB**, nén và tải lên Google Drive nhanh chóng (✅ Đã verify: memory-mapped dataset & alignment test pass).
 
 ---
 
