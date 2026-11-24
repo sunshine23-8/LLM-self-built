@@ -51,9 +51,10 @@ checkpoints/
 models/
 weights/
 
-# Datasets & Large Data Files
-data/
-datasets/
+# Datasets & Large Data Files (Root only)
+/data/
+/datasets/
+!src/data/
 *.jsonl
 *.parquet
 *.arrow
