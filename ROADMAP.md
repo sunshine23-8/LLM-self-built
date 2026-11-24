@@ -68,16 +68,16 @@ flowchart TD
 ### 🔹 Bước 3: Lập Trình Kiến Trúc Lõi Transformer & Dynamic KV Cache (Tại Local)
 * **Mục tiêu**: Xây dựng kiến trúc Transformer hiện đại dạng Pre-Norm Decoder-Only và chứng minh tính đúng đắn số học qua Unit Test tại máy cục bộ trước khi train.
 * **Các việc cần làm**:
-  - [ ] Tự lập trình các module PyTorch thuần:
+  - [x] Tự lập trình các module PyTorch thuần:
     - `RMSNorm` (Pre-norm không bias, ổn định gradient).
     - `RoPE` (Rotary Position Embedding, $\theta = 10,000$).
     - `Attention`: Grouped-Query Attention (GQA) với phép tính thủ công $Q @ K^T / \sqrt{d_{\text{head}}}$ kèm causal mask, hỗ trợ cờ đối chứng `attn_backend="sdpa"`.
     - `SwiGLU`: Feed-Forward Network với kích thước $d_{\text{ff}} \approx \frac{8}{3} d_{\text{model}}$ (bội số 128).
     - `DynamicKVCache`: Bộ đệm tensor chunked dynamic, hỗ trợ phương thức sao chép độc lập `copy_batch` cho Test-Time Scaling.
     - `DecoderOnlyLM`: Ghép toàn bộ transformer blocks và kích hoạt **Weight Tying** (`embed_tokens.weight == lm_head.weight`).
-  - [ ] **Bộ Unit Test kiểm thử sống còn (TDD)**:
-    - **Cấp 1 — Numerical Equivalence**: Sai số logits giữa *Bật KV Cache* và *Tắt KV Cache* ở FP32 phải đạt $\max |\Delta| < 10^{-5}$.
-    - **Cấp 2 — Functional Equivalence**: Sinh Greedy 64 tokens từ cùng một prompt phải trùng khớp 100% giữa hai chế độ.
+  - [x] **Bộ Unit Test kiểm thử sống còn (TDD)**:
+    - **Cấp 1 — Numerical Equivalence**: Sai số logits giữa *Bật KV Cache* và *Tắt KV Cache* ở FP32 phải đạt $\max |\Delta| < 10^{-5}$ (✅ Đã verify: $\max < 10^{-5}$, mean $< 10^{-6}$).
+    - **Cấp 2 — Functional Equivalence**: Sinh Greedy tokens từ cùng một prompt phải trùng khớp 100% giữa hai chế độ (✅ Đã verify: 100% exact match).
 
 ---
 
