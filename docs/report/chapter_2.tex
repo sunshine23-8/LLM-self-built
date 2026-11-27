@@ -1,26 +1,41 @@
-\section{Phương pháp luận (Methodology)}
+% !TEX root = main.tex
+\section{Phương pháp luận}
 
 \subsection{Bộ mã hóa Byte-Level BPE Tối ưu cho Toán học}
-Chúng tôi tự cài đặt thuật toán Byte-Level BPE thuần Python (không dùng \texttt{tiktoken} hay \texttt{tokenizers}) khởi tạo từ 256 byte UTF-8 cơ bản và học 16.121 phép ghép (\emph{merges}) để đạt kích thước từ vựng mục tiêu $V = 16{,}384$. Điểm then chốt cho bài toán số học là bộ tiền tách từ (\emph{pre-tokenizer}) sử dụng biểu thức chính quy tách riêng từng chữ số đơn lẻ \texttt{0--9}, đảm bảo mọi số nhiều chữ số (ví dụ \texttt{1234}) luôn được mã hóa nhất quán thành các token đơn lẻ \texttt{['1','2','3','4']} thay vì bị gộp ngẫu nhiên theo tần suất.
+Chúng tôi tự cài đặt thuật toán Byte-Level BPE thuần Python (không dùng \texttt{tiktoken} hay \texttt{tokenizers}) khởi tạo từ 256 byte UTF-8 cơ bản và học 16.121 phép ghép để đạt kích thước từ vựng mục tiêu $V = 16{,}384$. Điểm then chốt cho bài toán số học là bộ tiền tách từ sử dụng biểu thức chính quy tách riêng từng chữ số đơn lẻ \texttt{0--9}, đảm bảo mọi số nhiều chữ số (ví dụ \texttt{1234}) luôn được mã hóa nhất quán thành các token đơn lẻ \texttt{['1','2','3','4']} thay vì bị gộp ngẫu nhiên theo tần suất.
 
-Hệ thống cố định 7 token đặc biệt từ ID 0 đến 6: \texttt{<|pad|>}, \texttt{<|bos|>}, \texttt{<|eos|>}, \texttt{<|user|>}, \texttt{<|assistant|>}, \texttt{<think>}, và \texttt{</think>}.
+Hệ thống cố định 7 token đặc biệt từ ID 0 đến 6 như trình bày trong Bảng~\ref{tab:special_tokens}.
+
+\begin{table}[htbp]
+\centering
+\caption{Danh sách 7 Token Đặc biệt Cố định}
+\label{tab:special_tokens}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{@{}cll@{}}
+\toprule
+\textbf{ID} & \textbf{Token} & \textbf{Vai trò} \\ \midrule
+0 & \texttt{<|pad|>} & Đệm độ dài chuỗi trong batch \\
+1 & \texttt{<|bos|>} & Đánh dấu bắt đầu chuỗi \\
+2 & \texttt{<|eos|>} & Đánh dấu kết thúc sinh văn bản \\
+3 & \texttt{<|user|>} & Phân tách phần câu hỏi người dùng \\
+4 & \texttt{<|assistant|>} & Phân tách phần trả lời của mô hình \\
+5 & \texttt{<think>} & Mở đầu khối suy luận từng bước \\
+6 & \texttt{</think>} & Kết thúc khối suy luận trước đáp án \\ \bottomrule
+\end{tabular}%
+}
+\end{table}
 
 \subsection{Kiến trúc Decoder-Only Transformer}
-Mô hình \texttt{DecoderOnlyLM} được xây dựng theo chuẩn Pre-Norm Decoder-Only (họ Llama/Qwen) \cite{touvron2023llama} với cấu hình \emph{Compact} gồm $L_{\text{layers}} = 12$ tầng, $d_{\text{model}} = 512$, $n_{\text{heads}} = 8$ đầu truy vấn, $n_{\text{kv\_heads}} = 4$ đầu Key/Value ($d_{\text{head}} = 64$), $d_{\text{ff}} = 1408$, độ dài ngữ cảnh tối đa $L_{\max} = 2048$, và chia sẻ trọng số Embedding--LM Head (\emph{Weight Tying}), cho tổng số tham số chính xác là $43{,}790{,}848$.
+Mô hình \texttt{DecoderOnlyLM} được xây dựng theo chuẩn Pre-Norm Decoder-Only \cite{touvron2023llama} với cấu hình Compact gồm $L_{\text{layers}} = 12$ tầng, $d_{\text{model}} = 512$, $n_{\text{heads}} = 8$ đầu truy vấn, $n_{\text{kv\_heads}} = 4$ đầu Key/Value ($d_{\text{head}} = 64$), $d_{\text{ff}} = 1408$, độ dài ngữ cảnh tối đa $L_{\max} = 2048$, và chia sẻ trọng số giữa Embedding và LM Head, cho tổng số tham số chính xác là $43{,}790{,}848$.
 
-Các thành phần lõi được lập trình tường minh bằng phép toán tensor PyTorch:
-\begin{itemize}
-    \item \textbf{RMSNorm}: Chuẩn hóa trước mỗi khối con (không dùng bias) giúp ổn định gradient:
-    \begin{equation}
-        \text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^2 + \epsilon}} \odot \boldsymbol{\gamma}, \quad \epsilon = 10^{-6}.
-    \end{equation}
-    \item \textbf{RoPE (Rotary Position Embedding)}: Mã hóa vị trí tương đối trực tiếp lên các vector $Q, K$ với cơ số $\theta = 10{,}000$, tương thích tự nhiên với vị trí \texttt{start\_pos} khi giải mã từng bước \cite{su2021roformer}.
-    \item \textbf{Grouped-Query Attention (GQA)}: Sử dụng tỷ lệ $2:1$ ($8$ query heads chia sẻ $4$ KV heads), cài đặt thủ công phép tính $\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_{\text{head}}}} + M_{\text{causal}}\right)V$ (cùng cờ đối chứng \texttt{attn\_backend="sdpa"}).
-    \item \textbf{SwiGLU Feed-Forward}: $\text{SwiGLU}(\mathbf{x}) = (\text{SiLU}(\mathbf{x}W_1) \odot (\mathbf{x}W_3))W_2$ với $d_{\text{ff}} = 1408 \approx \frac{8}{3}d_{\text{model}}$.
-\end{itemize}
+Các thành phần lõi được lập trình tường minh bằng phép toán tensor PyTorch. Trước hết, RMSNorm thực hiện chuẩn hóa trước mỗi khối con không dùng bias nhằm ổn định gradient:
+\begin{equation}
+    \text{RMSNorm}(\mathbf{x}) = \frac{\mathbf{x}}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^2 + \epsilon}} \odot \boldsymbol{\gamma}, \quad \epsilon = 10^{-6}.
+\end{equation}
+Tiếp theo, RoPE mã hóa vị trí tương đối trực tiếp lên các vector $Q, K$ với cơ số $\theta = 10{,}000$, giúp tương thích tự nhiên với vị trí \texttt{start\_pos} khi giải mã từng bước \cite{su2021roformer}. Khối Grouped-Query Attention sử dụng tỷ lệ $2:1$ ($8$ query heads chia sẻ $4$ KV heads), cài đặt thủ công phép tính $\text{softmax}\!\left(\frac{QK^\top}{\sqrt{d_{\text{head}}}} + M_{\text{causal}}\right)V$ cùng cờ đối chứng \texttt{attn\_backend="sdpa"}. Cuối cùng, tầng SwiGLU Feed-Forward tính $\text{SwiGLU}(\mathbf{x}) = (\text{SiLU}(\mathbf{x}W_1) \odot (\mathbf{x}W_3))W_2$ với $d_{\text{ff}} = 1408 \approx \frac{8}{3}d_{\text{model}}$.
 
 \subsection{Bộ đệm DynamicKVCache và Cơ chế Tái sử dụng Prefix}
-Để tránh tính lại phép chiếu Key/Value cho các token cũ khi sinh tự hồi quy, chúng tôi thiết kế \texttt{DynamicKVCache} dạng bộ đệm tensor cấp phát theo từng đoạn (\emph{chunked buffer}) với kích thước khởi tạo \texttt{init\_cap = 128} và tự động mở rộng theo bội số $128$ tối đa đến $2048$. Thiết kế này tránh được chi phí sao chép $O(L^2)$ của \texttt{torch.cat} tại mỗi bước decode đồng thời không lãng phí VRAM cho các chuỗi ngắn. Dung lượng bộ nhớ lý thuyết của KV Cache ở độ chính xác FP16 ($2$ bytes/phần tử) là:
+Để tránh tính lại phép chiếu Key/Value cho các token cũ khi sinh tự hồi quy, chúng tôi thiết kế \texttt{DynamicKVCache} dạng bộ đệm tensor cấp phát theo từng đoạn với kích thước khởi tạo \texttt{init\_cap = 128} và tự động mở rộng theo bội số $128$ tối đa đến $2048$. Thiết kế này tránh được chi phí sao chép $O(L^2)$ của \texttt{torch.cat} tại mỗi bước giải mã, đồng thời không lãng phí VRAM cho các chuỗi ngắn. Dung lượng bộ nhớ lý thuyết của KV Cache ở độ chính xác FP16 ($2$ bytes/phần tử) là:
 \begin{equation}
     \text{VRAM}_{\text{KV}} = 2 \cdot n_{\text{layers}} \cdot B \cdot n_{\text{kv\_heads}} \cdot L \cdot d_{\text{head}} \cdot 2 \text{ bytes}.
 \end{equation}
@@ -28,7 +43,7 @@ Các thành phần lõi được lập trình tường minh bằng phép toán t
 Đối với Test-Time Scaling ($K$ nhánh song song), hệ thống sử dụng phương thức \texttt{copy\_batch} (\texttt{repeat\_interleave}) để sao chép vật lý trạng thái KV sau pha Prefill thành $K$ nhánh độc lập, đảm bảo cập nhật từng nhánh an toàn tuyệt đối (bên cạnh cấu trúc \texttt{SharedPrefixKVCache} cho tối ưu bộ nhớ mở rộng).
 
 \subsection{Kiểm soát Rò rỉ Dữ liệu và Huấn luyện CoT SFT}
-Trước khi tinh chỉnh trên tập \texttt{GSM8K train} (7.473 câu), toàn bộ dữ liệu được đưa qua bộ lọc \texttt{LeakageFilter} 3 tầng đối chiếu với 1.319 câu \texttt{GSM8K test}: (1) khớp chính xác nguyên bản (\emph{Exact}), (2) khớp sau chuẩn hóa chữ thường/dấu câu/số (\emph{Normalized}), và (3) lọc gần trùng lặp với độ tương đồng 5-gram Jaccard $\ge 0.80$.
+Trước khi tinh chỉnh trên tập \texttt{GSM8K train} (7.473 câu), toàn bộ dữ liệu được đưa qua bộ lọc \texttt{LeakageFilter} 3 tầng đối chiếu với 1.319 câu \texttt{GSM8K test}: (1) khớp chính xác nguyên bản, (2) khớp sau chuẩn hóa chữ thường, dấu câu và số, và (3) lọc gần trùng lặp với độ tương đồng 5-gram Jaccard $\ge 0.80$.
 
 Dữ liệu CoT SFT được làm sạch thẻ \texttt{<<expr=val>>} và định dạng theo khuôn mẫu chuẩn tách biệt quá trình suy luận và đáp án:
 \begin{quote}
@@ -36,13 +51,7 @@ Dữ liệu CoT SFT được làm sạch thẻ \texttt{<<expr=val>>} và định
 \texttt{<think> \{reasoning\_steps\} </think>} \\
 \texttt{\#\#\#\# \{final\_answer\}<|eos|>}
 \end{quote}
-Hàm mất mát Cross-Entropy áp dụng \textbf{Assistant-Only Loss Masking} (gán nhãn \texttt{ignore\_index = -100} cho toàn bộ token thuộc phần câu hỏi của người dùng).
+Hàm mất mát Cross-Entropy áp dụng cơ chế ẩn nhãn câu hỏi (\texttt{ignore\_index = -100}), chỉ tính gradient cho phần trả lời của mô hình.
 
 \subsection{Động cơ Test-Time Scaling và Đánh giá GSM8K}
-Với mỗi câu hỏi kiểm thử, chúng tôi đánh giá baseline tất định \texttt{Greedy Pass@1} ($T=0$) và sinh một \textbf{shared pool} gồm $K=16$ chuỗi suy luận độc lập ($T=0.7$, $\text{top\_p}=0.95$, $\text{repetition\_penalty}=1.05$) để so sánh công bằng các chiến lược:
-\begin{itemize}
-    \item \textbf{Majority Voting (\texttt{Maj@4, Maj@8, Maj@16})}: Chuẩn hóa đáp án số trích xuất được về dạng \texttt{Decimal} và chọn đáp án có số phiếu cao nhất (phá hòa bằng log-probability trung bình).
-    \item \textbf{Heuristic Best-of-N (\texttt{BoN@8, BoN@16})}: Chấm điểm mỗi chuỗi dựa trên mức độ tuân thủ thẻ \texttt{<think>...</think>} + \texttt{\#\#\#\#}, tỷ lệ phép tính số học hợp lệ (kiểm tra an toàn bằng bộ phân tích biểu thức, không dùng \texttt{eval()}), và log-probability trung bình.
-    \item \textbf{Learned ORM Verifier (tùy chọn)}: Mô hình \texttt{OutcomeVerifierModel} gắn đầu tuyến tính lên hidden state tại token đáp án cuối cùng trước \texttt{<|eos|>}, huấn luyện bằng \texttt{BCEWithLogitsLoss} trên các rollout chia theo cấp độ câu hỏi để hỗ trợ \texttt{BoN@K} và \texttt{Weighted Maj@16}.
-    \item \textbf{Oracle \texttt{Pass@16}}: Tỷ lệ câu hỏi có ít nhất 1 trong 16 chuỗi đúng (báo cáo như cận trên lý thuyết).
-\end{itemize}
+Với mỗi câu hỏi kiểm thử, chúng tôi đánh giá baseline tất định \texttt{Greedy Pass@1} ($T=0$) và sinh một nhóm chung gồm $K=16$ chuỗi suy luận độc lập ($T=0.7$, $\text{top\_p}=0.95$, $\text{repetition\_penalty}=1.05$) để so sánh công bằng các chiến lược. Chiến lược Majority Voting (\texttt{Maj@4, Maj@8, Maj@16}) chuẩn hóa đáp án số trích xuất được về dạng \texttt{Decimal} và chọn đáp án có số phiếu cao nhất, phá hòa bằng log-probability trung bình. Chiến lược Heuristic Best-of-N (\texttt{BoN@8, BoN@16}) chấm điểm mỗi chuỗi dựa trên mức độ tuân thủ thẻ \texttt{<think>...</think>} + \texttt{\#\#\#\#}, tỷ lệ phép tính số học hợp lệ được kiểm tra an toàn bằng bộ phân tích biểu thức không dùng \texttt{eval()}, và log-probability trung bình. Ngoài ra, mô hình Learned ORM Verifier tùy chọn gắn một đầu tuyến tính lên hidden state tại token đáp án cuối cùng trước \texttt{<|eos|>}, huấn luyện bằng \texttt{BCEWithLogitsLoss} trên các chuỗi sinh thử chia theo cấp độ câu hỏi để hỗ trợ \texttt{BoN@K} và \texttt{Weighted Maj@16}. Cuối cùng, Oracle \texttt{Pass@16} đo tỷ lệ câu hỏi có ít nhất 1 trong 16 chuỗi đúng như cận trên lý thuyết.

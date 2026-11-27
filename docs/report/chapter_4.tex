@@ -1,4 +1,5 @@
-\section{Kết quả Thực nghiệm (Results)}
+% !TEX root = main.tex
+\section{Kết quả Thực nghiệm}
 
 \subsection{Kiểm chứng Đúng đắn và Profiling KV Cache}
 Trước khi huấn luyện, bộ kiểm thử đơn vị (\texttt{pytest}) xác nhận toàn bộ 29/29 bài kiểm thử đều đạt, trong đó sai số logits giữa chế độ bật và tắt KV Cache ở FP32 đạt $\max |\Delta| < 10^{-5}$ và sinh Greedy trùng khớp 100\% trên 64 token.
@@ -9,19 +10,23 @@ Bảng~\ref{tab:kv_profile} tổng hợp kết quả đo đạc thực nghiệm 
 \centering
 \caption{So sánh Hiệu năng Có KV Cache vs. Không KV Cache trên GPU T4}
 \label{tab:kv_profile}
+\resizebox{\columnwidth}{!}{%
 \begin{tabular}{@{}cccccc@{}}
 \toprule
 $L$ & \textbf{KV Cache} & \textbf{TTFT (ms)} & \textbf{TPOT Mean (ms)} & \textbf{Speed (tok/s)} & \textbf{VRAM (MB)} \\ \midrule
-128  & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-128  & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-512  & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-512  & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-1024 & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-1024 & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-2048 & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
-2048 & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\ \bottomrule
-\end{tabular}
+128  & Bật & 17.82 & 14.50 & 68.5 & 96.9 \\
+128  & Tắt & 17.52 & 17.55 & 56.6 & 103.6 \\
+512  & Bật & 17.52 & 16.04 & 61.9 & 102.3 \\
+512  & Tắt & 17.26 & 18.40 & 54.0 & 134.0 \\
+1024 & Bật & 16.63 & 15.22 & 65.2 & 109.6 \\
+1024 & Tắt & 17.69 & 20.11 & 49.4 & 213.5 \\
+2048 & Bật & 15.82 & 15.27 & 65.0 & 124.7 \\
+2048 & Tắt & 16.75 & 43.55 & 22.9 & 495.6 \\ \bottomrule
+\end{tabular}%
+}
 \end{table}
+
+Kết quả đo đạc trên Bảng~\ref{tab:kv_profile} cho thấy dung lượng \texttt{DynamicKVCache} cấp phát thực tế tăng tuyến tính đúng theo công thức lý thuyết ($1.50$, $6.00$, $12.00$, và $24.00\text{ MB}$ tại $L \in \{128, 512, 1024, 2048\}$). Khi bật KV Cache, độ trễ mỗi token (\texttt{TPOT\_mean}) giữ ổn định quanh $14.50\text{--}16.04\text{ ms}$ ($61.9\text{--}68.5\text{ tok/s}$), trong khi tắt KV Cache làm \texttt{TPOT\_mean} tăng lên $43.55\text{ ms}$ (\texttt{TPOT\_p95} $= 95.13\text{ ms}$) ở $L=2048$. Tại ngữ cảnh tối đa $L=2048$, bật KV Cache giúp tăng tốc độ sinh lên gấp 2.84$\times$ ($65.0$ so với $22.9\text{ tok/s}$) và giảm 3.97$\times$ bộ nhớ Peak VRAM ($124.7$ so với $495.6\text{ MB}$).
 
 \subsection{Đường cong Hội tụ Huấn luyện}
 \tbd{Chèn hình loss curve từ file \texttt{training\_log.jsonl} / TensorBoard của pha Pre-train (5.000 steps) và CoT SFT (1.500 steps), kèm nhận xét về độ hội tụ.}

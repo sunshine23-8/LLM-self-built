@@ -2,6 +2,7 @@ from dataclasses import asdict, dataclass
 import json
 import math
 from pathlib import Path
+import signal
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
@@ -129,6 +130,19 @@ class Trainer:
             except ImportError:
                 tb_writer = None
 
+        last_completed_step = start_step
+        last_saved_step = start_step
+
+        def _handle_sigterm(signum: int, frame: object) -> None:
+            raise KeyboardInterrupt
+
+        prev_sigterm = signal.getsignal(signal.SIGTERM) if hasattr(signal, "SIGTERM") else None
+        if prev_sigterm is not None:
+            try:
+                signal.signal(signal.SIGTERM, _handle_sigterm)
+            except ValueError:
+                prev_sigterm = None
+
         try:
             with log_path.open(log_mode, encoding="utf-8") as log_file:
                 for step in range(start_step + 1, self.cfg.max_steps + 1):
@@ -155,6 +169,7 @@ class Trainer:
                     torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.grad_clip)
                     self.scaler.step(self.optimizer)
                     self.scaler.update()
+                    last_completed_step = step
                     history["train_loss"].append(accum_loss)
 
                     record: dict[str, float | int] = {"step": step, "train_loss": accum_loss, "lr": lr}
@@ -179,8 +194,18 @@ class Trainer:
                     if step % self.cfg.save_interval == 0 or step == self.cfg.max_steps:
                         save_path = self.cfg.out_dir / f"step_{step:06d}.pt"
                         self.save_checkpoint(save_path, step=step)
+                        last_saved_step = step
                         print(f"Saved checkpoint to {save_path}")
+        except KeyboardInterrupt:
+            if last_completed_step > last_saved_step:
+                interrupt_path = self.cfg.out_dir / f"step_{last_completed_step:06d}.pt"
+                self.save_checkpoint(interrupt_path, step=last_completed_step)
+                print(f"\nTraining interrupted! Saved checkpoint at step {last_completed_step} to {interrupt_path}")
+            else:
+                print(f"\nTraining interrupted at step {last_completed_step} (already saved).")
         finally:
+            if prev_sigterm is not None:
+                signal.signal(signal.SIGTERM, prev_sigterm)
             if tb_writer is not None:
                 tb_writer.close()
 

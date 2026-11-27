@@ -1,5 +1,6 @@
 param(
-    [switch]$Clean
+    [switch]$Clean,
+    [switch]$Watch
 )
 
 $ErrorActionPreference = "Stop"
@@ -28,8 +29,35 @@ if (-not (Get-Command pdflatex -ErrorAction SilentlyContinue)) {
     Write-Error "pdflatex not found. Please install MiKTeX (https://miktex.org/download) or TeX Live first."
 }
 
-pdflatex -interaction=nonstopmode "$Main.tex"
-bibtex "$Main"
-pdflatex -interaction=nonstopmode "$Main.tex"
-pdflatex -interaction=nonstopmode "$Main.tex"
-Write-Host "Built $Main.pdf successfully."
+function Invoke-Build {
+    pdflatex -interaction=nonstopmode "$Main.tex" | Out-Null
+    bibtex "$Main" | Out-Null
+    pdflatex -interaction=nonstopmode "$Main.tex" | Out-Null
+    pdflatex -interaction=nonstopmode "$Main.tex"
+    Write-Host "Built $Main.pdf successfully at $(Get-Date -Format 'HH:mm:ss')."
+}
+
+Invoke-Build
+
+if ($Watch) {
+    Write-Host "Watching *.tex and references.bib for changes (Press Ctrl+C to stop)..."
+    $lastHash = ""
+    while ($true) {
+        Start-Sleep -Milliseconds 700
+        $files = Get-ChildItem -File -Include *.tex, references.bib
+        $curHash = ($files | ForEach-Object { "$($_.Name):$($_.LastWriteTimeUtc.Ticks)" }) -join "|"
+        if ($lastHash -eq "") {
+            $lastHash = $curHash
+            continue
+        }
+        if ($curHash -ne $lastHash) {
+            $lastHash = $curHash
+            Write-Host "Change detected, rebuilding..."
+            try {
+                Invoke-Build
+            } catch {
+                Write-Warning $_
+            }
+        }
+    }
+}

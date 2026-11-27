@@ -46,3 +46,44 @@ def test_trainer_decreases_loss_and_roundtrips_checkpoint(tmp_path: Path):
     trainer2 = Trainer(model2, tcfg, loader, causal_shift=False)
     loaded_step = trainer2.load_checkpoint(ckpt_file)
     assert loaded_step == 8
+
+
+def test_trainer_saves_checkpoint_on_interrupt(tmp_path: Path, monkeypatch):
+    torch.manual_seed(0)
+    cfg = ModelConfig(vocab_size=64, block_size=32, d_model=32, n_layers=2, n_heads=4, n_kv_heads=2, d_ff=64)
+    model = DecoderOnlyLM(cfg)
+
+    x = torch.randint(0, 64, (8, 16))
+    y = torch.roll(x, shifts=-1, dims=1)
+    y[:, -1] = -100
+    loader = DataLoader(TensorDataset(x, y), batch_size=4, shuffle=False)
+
+    tcfg = TrainConfig(
+        lr=3e-3,
+        min_lr=3e-4,
+        warmup_steps=1,
+        max_steps=10,
+        grad_accum_steps=1,
+        amp_dtype="float32",
+        eval_interval=10,
+        save_interval=10,
+        out_dir=tmp_path / "ckpt_interrupt",
+    )
+    trainer = Trainer(model, tcfg, loader, causal_shift=False)
+
+    orig_step = trainer.scaler.step
+    calls = 0
+
+    def interrupt_on_third_step(opt):
+        nonlocal calls
+        calls += 1
+        if calls == 3:
+            raise KeyboardInterrupt
+        return orig_step(opt)
+
+    monkeypatch.setattr(trainer.scaler, "step", interrupt_on_third_step)
+    history = trainer.train()
+    assert len(history["train_loss"]) == 2
+    saved_ckpt = tmp_path / "ckpt_interrupt" / "step_000002.pt"
+    assert saved_ckpt.exists()
+    assert trainer.load_checkpoint(saved_ckpt) == 2
