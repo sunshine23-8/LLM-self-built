@@ -1,0 +1,51 @@
+\section{Kết quả Thực nghiệm (Results)}
+
+\subsection{Kiểm chứng Đúng đắn và Profiling KV Cache}
+Trước khi huấn luyện, bộ kiểm thử đơn vị (\texttt{pytest}) xác nhận toàn bộ 29/29 bài kiểm thử đều đạt, trong đó sai số logits giữa chế độ bật và tắt KV Cache ở FP32 đạt $\max |\Delta| < 10^{-5}$ và sinh Greedy trùng khớp 100\% trên 64 token.
+
+Bảng~\ref{tab:kv_profile} tổng hợp kết quả đo đạc thực nghiệm trên GPU T4 giữa \texttt{use\_cache=True} và \texttt{use\_cache=False} tại các độ dài $L \in \{128, 512, 1024, 2048\}$ (prompt 64 tokens).
+
+\begin{table}[htbp]
+\centering
+\caption{So sánh Hiệu năng Có KV Cache vs. Không KV Cache trên GPU T4}
+\label{tab:kv_profile}
+\begin{tabular}{@{}cccccc@{}}
+\toprule
+$L$ & \textbf{KV Cache} & \textbf{TTFT (ms)} & \textbf{TPOT Mean (ms)} & \textbf{Speed (tok/s)} & \textbf{VRAM (MB)} \\ \midrule
+128  & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+128  & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+512  & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+512  & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+1024 & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+1024 & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+2048 & Bật & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\
+2048 & Tắt & \tbd{-} & \tbd{-} & \tbd{-} & \tbd{-} \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Đường cong Hội tụ Huấn luyện}
+\tbd{Chèn hình loss curve từ file \texttt{training\_log.jsonl} / TensorBoard của pha Pre-train (5.000 steps) và CoT SFT (1.500 steps), kèm nhận xét về độ hội tụ.}
+
+\subsection{Đánh giá trên GSM8K Test và Test-Time Scaling}
+Bảng~\ref{tab:gsm8k_results} trình bày độ chính xác và mức độ tuân thủ định dạng \texttt{<think>...</think>} trên 1.319 câu hỏi GSM8K Test.
+
+\begin{table}[htbp]
+\centering
+\caption{Kết quả Đánh giá Test-Time Scaling trên GSM8K Test (1.319 câu)}
+\label{tab:gsm8k_results}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Chiến lược} & \textbf{Avg Tokens / Câu} & \textbf{Độ chính xác (\%)} \\ \midrule
+E1: Greedy Pass@1 ($T=0$) & \tbd{-} & \tbd{-} \\
+E2: Majority Voting (\texttt{Maj@4}) & \tbd{-} & \tbd{-} \\
+E3: Majority Voting (\texttt{Maj@8}) & \tbd{-} & \tbd{-} \\
+E4: Majority Voting (\texttt{Maj@16}) & \tbd{-} & \tbd{-} \\
+E5: Heuristic Best-of-N (\texttt{BoN@8}) & \tbd{-} & \tbd{-} \\
+E6: Heuristic Best-of-N (\texttt{BoN@16}) & \tbd{-} & \tbd{-} \\
+\midrule
+Oracle Upper Bound (\texttt{Pass@16}) & \tbd{-} & \tbd{-} \\
+Strict Format Rate (\texttt{<think>} + \texttt{\#\#\#\#}) & -- & \tbd{-} \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\tbd{Chèn hình \texttt{compute\_accuracy\_frontier.png} và \texttt{accuracy\_vs\_think\_length.png} do script \texttt{scripts/eval\_gsm8k.py} xuất ra.}

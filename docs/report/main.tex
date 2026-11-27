@@ -1,0 +1,49 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[vietnamese]{babel}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\newcommand{\tbd}[1]{\textcolor{red}{\textbf{[TBD: #1]}}}
+
+\begin{document}
+
+\title{Xây dựng Mô hình Ngôn ngữ Suy luận Từ đầu bằng PyTorch Thuần và Tối ưu hóa Test-Time Compute trên Đơn GPU}
+
+\author{
+\IEEEauthorblockN{Tác giả: \tbd{Họ và tên sinh viên}}
+\IEEEauthorblockA{
+Khoa/Trường: \tbd{Tên Khoa / Trường} \\
+Email: \tbd{email@domain.edu.vn} \\
+Mã nguồn: \url{https://github.com/sunshine23-8/LLM-self-built}
+}
+}
+
+\maketitle
+
+\begin{abstract}
+Báo cáo này trình bày quy trình thiết kế, tự lập trình từ đầu (\emph{from scratch}) bằng PyTorch thuần và đánh giá thực nghiệm một mô hình ngôn ngữ lớn phục vụ suy luận toán học (Reasoning LLM) trên phần cứng đơn GPU phổ thông (NVIDIA T4 16GB VRAM). Hệ thống gồm hai tầng: (1) \textbf{Khung Cốt lõi} với bộ mã hóa Byte-Level BPE tách chữ số đơn lẻ (\texttt{vocab\_size = 16,384}), kiến trúc Pre-Norm Decoder-Only Transformer (~43,8M tham số) sử dụng \texttt{RMSNorm}, \texttt{RoPE}, \texttt{Grouped-Query Attention (GQA)}, \texttt{SwiGLU}, \texttt{Weight Tying}, cùng bộ đệm \texttt{DynamicKVCache} tự thiết kế; và (2) \textbf{Năng lực Suy luận (Hướng C)} kết hợp lọc rò rỉ dữ liệu 3 tầng (Anti-Leakage), tinh chỉnh Chuỗi Tư duy (\emph{Chain-of-Thought SFT}) với cặp thẻ \texttt{<think>...</think>}, và mở rộng tính toán thời điểm suy luận (\emph{Test-Time Scaling}) thông qua Majority Voting (\texttt{Maj@K}), Best-of-N Re-ranking (\texttt{BoN@K}) và Learned ORM Verifier trên tập kiểm thử chuẩn GSM8K (1.319 bài toán). Kết quả thực nghiệm cho thấy \tbd{tóm tắt tốc độ KV Cache và độ chính xác Pass@1 vs. Maj@16 sau khi chạy xong Colab}.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Mô hình Ngôn ngữ Lớn, PyTorch thuần, Dynamic KV Cache, Chain-of-Thought, Test-Time Compute, Majority Voting, GSM8K.
+\end{IEEEkeywords}
+
+\input{chapter_1}
+\input{chapter_2}
+\input{chapter_3}
+\input{chapter_4}
+\input{chapter_5}
+\input{chapter_6}
+\input{chapter_7}
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

@@ -1,4 +1,5 @@
 from dataclasses import asdict, dataclass
+import json
 import math
 from pathlib import Path
 import torch
@@ -22,6 +23,8 @@ class TrainConfig:
     gradient_checkpointing: bool = False
     eval_interval: int = 100
     save_interval: int = 200
+    log_interval: int = 20
+    enable_tensorboard: bool = True
     out_dir: Path = Path("artifacts/checkpoints")
 
 
@@ -113,43 +116,72 @@ class Trainer:
         history: dict[str, list[float]] = {"train_loss": [], "val_loss": []}
         data_iter = iter(self.train_loader)
 
-        for step in range(start_step + 1, self.cfg.max_steps + 1):
-            lr = cosine_lr_with_warmup(step, self.cfg.warmup_steps, self.cfg.max_steps, self.cfg.lr, self.cfg.min_lr)
-            for pg in self.optimizer.param_groups:
-                pg["lr"] = lr
+        self.cfg.out_dir.mkdir(parents=True, exist_ok=True)
+        log_path = self.cfg.out_dir / "training_log.jsonl"
+        log_mode = "a" if start_step > 0 and log_path.exists() else "w"
 
-            self.optimizer.zero_grad(set_to_none=True)
-            accum_loss = 0.0
-            for _ in range(self.cfg.grad_accum_steps):
-                try:
-                    x, y = next(data_iter)
-                except StopIteration:
-                    data_iter = iter(self.train_loader)
-                    x, y = next(data_iter)
-                x, y = x.to(self.device), y.to(self.device)
-                with torch.amp.autocast(device_type=self.device.type, dtype=self.amp_torch_dtype, enabled=self.use_amp):
-                    logits = self.model(x)
-                    loss = _compute_loss(logits, y, causal_shift=self.causal_shift) / self.cfg.grad_accum_steps
-                self.scaler.scale(loss).backward()
-                accum_loss += float(loss.item())
+        tb_writer = None
+        if self.cfg.enable_tensorboard:
+            try:
+                from torch.utils.tensorboard import SummaryWriter
 
-            self.scaler.unscale_(self.optimizer)
-            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.grad_clip)
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-            history["train_loss"].append(accum_loss)
+                tb_writer = SummaryWriter(log_dir=str(self.cfg.out_dir / "tb_logs"))
+            except ImportError:
+                tb_writer = None
 
-            if step % 20 == 0 or step == 1:
-                print(f"Step {step}/{self.cfg.max_steps} | Loss: {accum_loss:.4f} | LR: {lr:.2e}")
+        try:
+            with log_path.open(log_mode, encoding="utf-8") as log_file:
+                for step in range(start_step + 1, self.cfg.max_steps + 1):
+                    lr = cosine_lr_with_warmup(step, self.cfg.warmup_steps, self.cfg.max_steps, self.cfg.lr, self.cfg.min_lr)
+                    for pg in self.optimizer.param_groups:
+                        pg["lr"] = lr
 
-            if self.val_loader is not None and step % self.cfg.eval_interval == 0:
-                val_loss = self.evaluate()
-                history["val_loss"].append(val_loss)
-                print(f"--> Step {step} Validation Loss: {val_loss:.4f}")
+                    self.optimizer.zero_grad(set_to_none=True)
+                    accum_loss = 0.0
+                    for _ in range(self.cfg.grad_accum_steps):
+                        try:
+                            x, y = next(data_iter)
+                        except StopIteration:
+                            data_iter = iter(self.train_loader)
+                            x, y = next(data_iter)
+                        x, y = x.to(self.device), y.to(self.device)
+                        with torch.amp.autocast(device_type=self.device.type, dtype=self.amp_torch_dtype, enabled=self.use_amp):
+                            logits = self.model(x)
+                            loss = _compute_loss(logits, y, causal_shift=self.causal_shift) / self.cfg.grad_accum_steps
+                        self.scaler.scale(loss).backward()
+                        accum_loss += float(loss.item())
 
-            if step % self.cfg.save_interval == 0 or step == self.cfg.max_steps:
-                save_path = self.cfg.out_dir / f"step_{step:06d}.pt"
-                self.save_checkpoint(save_path, step=step)
-                print(f"Saved checkpoint to {save_path}")
+                    self.scaler.unscale_(self.optimizer)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.cfg.grad_clip)
+                    self.scaler.step(self.optimizer)
+                    self.scaler.update()
+                    history["train_loss"].append(accum_loss)
+
+                    record: dict[str, float | int] = {"step": step, "train_loss": accum_loss, "lr": lr}
+                    if tb_writer is not None:
+                        tb_writer.add_scalar("train/loss", accum_loss, step)
+                        tb_writer.add_scalar("train/lr", lr, step)
+
+                    if step % self.cfg.log_interval == 0 or step == 1:
+                        print(f"Step {step}/{self.cfg.max_steps} | Loss: {accum_loss:.4f} | LR: {lr:.2e}")
+
+                    if self.val_loader is not None and step % self.cfg.eval_interval == 0:
+                        val_loss = self.evaluate()
+                        history["val_loss"].append(val_loss)
+                        record["val_loss"] = val_loss
+                        if tb_writer is not None:
+                            tb_writer.add_scalar("val/loss", val_loss, step)
+                        print(f"--> Step {step} Validation Loss: {val_loss:.4f}")
+
+                    log_file.write(json.dumps(record) + "\n")
+                    log_file.flush()
+
+                    if step % self.cfg.save_interval == 0 or step == self.cfg.max_steps:
+                        save_path = self.cfg.out_dir / f"step_{step:06d}.pt"
+                        self.save_checkpoint(save_path, step=step)
+                        print(f"Saved checkpoint to {save_path}")
+        finally:
+            if tb_writer is not None:
+                tb_writer.close()
 
         return history

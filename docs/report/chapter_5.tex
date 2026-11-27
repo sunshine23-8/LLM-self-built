@@ -1,0 +1,14 @@
+\section{Thảo luận và Phân tích Lỗi (Discussion \& Error Analysis)}
+
+\subsection{Tương quan giữa Độ dài Chuỗi Tư duy và Độ chính xác}
+Theo kết quả thống kê từ \texttt{summary.json}, hệ số tương quan giữa số token trong \texttt{<think>...</think>} và tính đúng đắn đạt Pearson $r = \tbd{-}$ và Spearman $\rho = \tbd{-}$, với độ dài trung bình của câu đúng là \tbd{-} tokens so với \tbd{-} tokens ở câu sai. Lưu ý rằng các chỉ số tương quan này chỉ phản ánh mối liên hệ thống kê trên các bài toán dễ/khó khác nhau chứ không chứng minh quan hệ nhân quả rằng sinh chuỗi dài hơn luôn làm tăng độ chính xác.
+
+\subsection{Phân tích 5 Trường hợp Thất bại (Error Analysis)}
+Từ tệp \texttt{error\_cases\_sample.json}, chúng tôi phân loại các lỗi điển hình của mô hình theo 6 nhóm (\texttt{reasoning\_loop}, \texttt{arithmetic\_error}, \texttt{answer\_extraction\_error}, \texttt{tokenization\_error}, \texttt{verifier\_error}, \texttt{logical\_error}) và phân tích 5 trường hợp tiêu biểu:
+\begin{enumerate}
+    \item \textbf{Ca 1 -- Lỗi tính nhẩm (\texttt{arithmetic\_error})}: \tbd{Trích câu hỏi, trace sai và phân tích nguyên nhân}.
+    \item \textbf{Ca 2 -- Lặp vô hạn (\texttt{reasoning\_loop})}: \tbd{Trích câu hỏi, trace bị lặp n-gram và phân tích nguyên nhân}.
+    \item \textbf{Ca 3 -- Suy luận logic sai (\texttt{logical\_error})}: \tbd{Trích câu hỏi, lỗi thiết lập phương trình}.
+    \item \textbf{Ca 4 -- Lỗi trích xuất/định dạng (\texttt{answer\_extraction\_error})}: \tbd{Trích câu hỏi bị cắt do hết max\_new\_tokens hoặc thiếu </think>}.
+    \item \textbf{Ca 5 -- Lỗi chọn lọc (\texttt{verifier\_error})}: \tbd{Trích câu hỏi có đáp án đúng trong pool 16 nhưng Maj@16/BoN@16 chọn nhầm}.
+\end{enumerate}

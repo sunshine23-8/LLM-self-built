@@ -38,6 +38,9 @@ def test_trainer_decreases_loss_and_roundtrips_checkpoint(tmp_path: Path):
     assert history["train_loss"][-1] < history["train_loss"][0]
     ckpt_file = tmp_path / "ckpt" / "step_000008.pt"
     assert ckpt_file.exists()
+    log_file = tmp_path / "ckpt" / "training_log.jsonl"
+    assert log_file.exists()
+    assert len(log_file.read_text(encoding="utf-8").strip().splitlines()) == 8
 
     model2 = DecoderOnlyLM(cfg)
     trainer2 = Trainer(model2, tcfg, loader, causal_shift=False)

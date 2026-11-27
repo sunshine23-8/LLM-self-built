@@ -66,8 +66,15 @@ weights/
 wandb/
 runs/
 logs/
+tb_logs/
+events.out.tfevents*
 *.log
 profile_results/
+artifacts/
+
+# Environment variables
+.env
+.env.*
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
@@ -82,3 +89,14 @@ profile_results/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+docs/report/*.pdf

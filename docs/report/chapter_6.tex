@@ -1,0 +1,7 @@
+\section{Đạo đức và Giới hạn (Ethics \& Limitations)}
+\begin{itemize}
+    \item \textbf{Giới hạn quy mô mô hình và dữ liệu}: Với 43,8M tham số và ngân sách huấn luyện trên đơn GPU T4, mô hình còn hạn chế về tri thức thế giới rộng và khả năng tổng quát hóa sang các bài toán nhiều bước phức tạp ngoài phân phối GSM8K.
+    \item \textbf{Lệch pha ngôn ngữ tiền huấn luyện}: Quá trình tiền huấn luyện thử nghiệm trên tập văn bản tiếng Việt (\texttt{FineWeb-2 vie\_Latn}) trong khi bộ đánh giá suy luận GSM8K sử dụng tiếng Anh tạo ra thách thức chuyển giao ngôn ngữ cho mô hình cỡ nhỏ.
+    \item \textbf{Rủi ro ảo giác và tính toán}: Mô hình vẫn có thể sinh chuỗi lập luận nghe hợp lý nhưng sai phép tính số học; do đó không nên sử dụng trực tiếp trong các ứng dụng đòi hỏi độ chính xác tuyệt đối mà không có bộ kiểm tra hình thức bên ngoài.
+    \item \textbf{Minh bạch dữ liệu}: Toàn bộ tập huấn luyện SFT đều đã được lọc chống rò rỉ 3 tầng nhằm đảm bảo tính trung thực của kết quả đo đạc trên 1.319 câu GSM8K Test.
+\end{itemize}

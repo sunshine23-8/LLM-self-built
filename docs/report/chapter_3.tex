@@ -1,0 +1,20 @@
+\section{Thiết lập Thực nghiệm (Experimental Setup)}
+Toàn bộ quá trình tiền huấn luyện, tinh chỉnh và đo đạc được thực hiện trên Google Colab với GPU \textbf{NVIDIA Tesla T4 (16GB VRAM)} sử dụng \textbf{FP16 Mixed Precision (AMP)} và \textbf{Gradient Checkpointing}. Các siêu tham số chính được tổng hợp trong Bảng~\ref{tab:hparams}.
+
+\begin{table}[htbp]
+\centering
+\caption{Cấu hình Mô hình và Siêu tham số Huấn luyện}
+\label{tab:hparams}
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Tham số} & \textbf{Giá trị} \\ \midrule
+Cấu hình mô hình & Compact ($43{,}790{,}848$ tham số) \\
+Kiến trúc & 12 layers, $d=512$, 8 Q / 4 KV heads, $d_{\text{ff}}=1408$ \\
+Từ vựng / Context & $V = 16{,}384$ / $L_{\max} = 2048$ \\
+Optimizer & AdamW ($\beta_1=0.9, \beta_2=0.95$, wd $=0.1$) \\
+Pre-train & FineWeb-2, batch $4 \times 16$ accum, LR $6\times 10^{-4}$, 5.000 steps \\
+CoT SFT & GSM8K train (clean), batch $4 \times 8$ accum, LR $3\times 10^{-5}$, 1.500 steps \\
+Test-Time Pool & $K=16$, $T=0.7$, $\text{top\_p}=0.95$, max\_new\_tokens $=768$ \\
+Tập kiểm thử & GSM8K Test Split ($1{,}319$ câu hỏi) \\ \bottomrule
+\end{tabular}
+\end{table}

@@ -17,20 +17,20 @@ from src.training.trainer import TrainConfig, Trainer
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run Chain-of-Thought (CoT) SFT training on GSM8K")
+    parser = argparse.ArgumentParser(description="Run CoT SFT for Self-Built Reasoning LLM")
     parser.add_argument("--config", type=Path, default=Path("configs/compact_12gb.yaml"))
     parser.add_argument("--tokenizer-dir", type=Path, default=Path("artifacts/tokenizer"))
-    parser.add_argument("--init-ckpt", type=Path, required=True, help="Path to pre-trained base model checkpoint")
+    parser.add_argument("--init-ckpt", type=Path, required=True, help="Path to pre-train or mid-train checkpoint")
     parser.add_argument("--out-dir", type=Path, default=Path("artifacts/cot_sft"))
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--grad-accum", type=int, default=8)
     parser.add_argument("--max-steps", type=int, default=1500)
     parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--save-interval", type=int, default=500)
     args = parser.parse_args()
 
     cfg = ModelConfig.from_yaml(args.config)
     tok = ByteLevelBPETokenizer.load(args.tokenizer_dir)
-    print("Downloading GSM8K dataset...")
     gsm_train = list(load_dataset("openai/gsm8k", "main", split="train"))
     gsm_test_qs = [row["question"] for row in load_dataset("openai/gsm8k", "main", split="test")]
 
@@ -43,7 +43,6 @@ def main() -> None:
     loader = DataLoader(ds, batch_size=args.batch_size, shuffle=True, collate_fn=lambda b: cot_collate_fn(b, pad_id))
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Loading model on {device} from {args.init_ckpt}...")
     model = DecoderOnlyLM(cfg).to(device)
     ckpt = torch.load(args.init_ckpt, map_location=device, weights_only=True)
     model.load_state_dict(ckpt["model_state_dict"])
@@ -56,12 +55,12 @@ def main() -> None:
         grad_accum_steps=args.grad_accum,
         amp_dtype=cfg.dtype if device == "cuda" else "float32",
         gradient_checkpointing=True,
+        save_interval=args.save_interval,
         out_dir=args.out_dir,
     )
-
     trainer = Trainer(model, tcfg, loader, causal_shift=True)
     trainer.train()
-    print("CoT SFT training complete!")
+    print("CoT SFT complete!")
 
 
 if __name__ == "__main__":
